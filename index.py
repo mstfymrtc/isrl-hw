@@ -1,12 +1,23 @@
 import pygame, sys
+from collections import Counter
+from random import randrange
 
 
 class Robot:
-    score = 0
+    registry = []
 
-    def __init__(self, row, col):
+    def __init__(self, row, col, name):
         self.row = row
         self.col = col
+        self.name = name
+        self.score = 0
+        self.registry.append(self)
+
+    def increaseScore(self):
+        self.score += 1
+
+    def printScore(self):
+        print(f"{self.name}'s score: {self.score}")
 
 
 # Define globals
@@ -14,6 +25,7 @@ TILESIZE = 40
 MAPWIDTH = 12
 MAPHEIGHT = 12
 MARGIN = 0.99
+DELAY = 25
 
 # Define tiles
 N = 0  # nothing
@@ -46,42 +58,87 @@ map = [[N, W, N, W, W, F, N, W, W, N, W, W],
        [W, N, W, N, N, N, W, N, N, F, W, N],
        [F, F, N, N, N, F, N, N, N, N, N, N],
        [N, W, N, W, W, F, N, N, W, N, W, W],
-       [N, N, W, F, N, N, N, F, F, W, N, N],
+       [N, N, W, F, N, N, N, F, F, N, N, N],
        [W, N, W, F, N, W, F, W, N, N, F, W]]
 
 # Initialize robots
-r1 = Robot(3, 4)
-r2 = Robot(0, 1)
+r1 = Robot(3, 4, "Robocop")
+r2 = Robot(3, 4, "Babur")
 
 pygame.init()
+pygame.display.set_caption('2D Robot World')
 DISPLAY = pygame.display.set_mode((MAPWIDTH * TILESIZE, MAPHEIGHT * TILESIZE))
 DISPLAY.fill(WHITE)
 
+
+# Define movement functions
+def forward(robot):
+    if robot.row != 0:
+        if map[robot.row - 1][robot.col] != W:
+            robot.row -= 1
+            pygame.time.wait(DELAY)
+
+
+def backward(robot):
+    if robot.row != 11:
+        if map[robot.row + 1][robot.col] != W:
+            robot.row += 1
+            pygame.time.wait(DELAY)
+
+
+def left(robot):
+    if robot.col != 0:
+        if map[robot.row][robot.col - 1] != W:
+            robot.col -= 1
+            pygame.time.wait(DELAY)
+
+
+def right(robot):
+    if robot.col != 11:
+        if map[robot.row][robot.col + 1] != W:
+            robot.col += 1
+            pygame.time.wait(DELAY)
+
+
 while True:
     # print(f"r1-row: {r1.row} r1-col: {r1.col}")
-
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
 
-        if event.type == pygame.KEYDOWN:
+    ################################################# Plan for Robocop ################################################
+    if r1.row != 0 and r1.row != 11 and r1.col != 0 and r1.col != 11:  # limits
+        if (map[r1.row][r1.col + 1] != W) or (map[r1.row][r1.col - 1] != W) or (map[r1.row + 1][r1.col] != W) or (
+                map[r1.row - 1][r1.col] != W):
+            # If robot is not in the map's limit & there is no wall around, randomly pick a route to navigate
+            num = randrange(0, 4)
+            if num == 0:
+                forward(r1)
+            elif num == 1:
+                backward(r1)
+            elif num == 2:
+                right(r1)
+            else:
+                left(r1)
 
-            if r1.col != 0:
-                if (event.key == pygame.K_LEFT) and (map[r1.row][r1.col - 1] != W):
-                    r1.col -= 1
+    else:  # If a robot in the map's limit, then randomly pick a route to navigate
+        num = randrange(0, 4)
+        if num == 0:
+            forward(r1)
+        elif num == 1:
+            backward(r1)
+        elif num == 2:
+            right(r1)
+        else:
+            left(r1)
+    ##################################################################################################################
 
-            if r1.col != 11:
-                if (event.key == pygame.K_RIGHT) and (map[r1.row][r1.col + 1] != W):
-                    r1.col += 1
-
-            if r1.row != 0:
-                if (event.key == pygame.K_UP) and (map[r1.row - 1][r1.col] != W):
-                    r1.row -= 1
-
-            if r1.row != 11:
-                if (event.key == pygame.K_DOWN) and (map[r1.row + 1][r1.col] != W):
-                    r1.row += 1
+    # If cell contains food, delete it and increase robot's score
+    if map[r1.row][r1.col] == F:
+        map[r1.row][r1.col] = N
+        r1.increaseScore()
+        # r1.printScore()
 
     for row in range(MAPHEIGHT):
         for col in range(MAPWIDTH):
