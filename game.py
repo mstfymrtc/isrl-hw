@@ -1,17 +1,14 @@
 import pygame, sys
-from collections import Counter
 from random import randrange
 
 
 class Robot:
-    registry = []
 
     def __init__(self, row, col, name):
         self.row = row
         self.col = col
         self.name = name
         self.score = 0
-        self.registry.append(self)
 
     def increaseScore(self):
         self.score += 1
