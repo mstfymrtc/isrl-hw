@@ -1,5 +1,6 @@
 import pygame, sys
 from random import randrange
+import time
 
 
 class Robot:
@@ -14,7 +15,9 @@ class Robot:
         self.score += 1
 
     def printScore(self):
-        print(f"{self.name}'s score: {self.score}")
+        # print(f"{self.name}'s score: {self.score}")
+        time.sleep(0.2)
+        print(f" New score of {self.name}: {self.score}")
 
 
 # Define globals
@@ -22,7 +25,7 @@ TILESIZE = 40
 MAPWIDTH = 12
 MAPHEIGHT = 12
 MARGIN = 0.99
-DELAY = 25
+DELAY = 100
 
 # Define tiles
 N = 0  # nothing
@@ -58,10 +61,18 @@ map = [[N, W, N, W, W, F, N, W, W, N, W, W],
        [N, N, W, F, N, N, N, F, F, N, N, N],
        [W, N, W, F, N, W, F, W, N, N, F, W]]
 
+numberOfFoods = 0
+# Count number of foods
+for row in range(MAPHEIGHT):
+    for col in range(MAPWIDTH):
+        if map[row][col] == F:
+            numberOfFoods += 1
+
 # Initialize robots
 r1 = Robot(3, 4, "Robocop")
 r2 = Robot(3, 4, "Babur")
 
+# Initialize pygame
 pygame.init()
 pygame.display.set_caption('2D Robot World')
 DISPLAY = pygame.display.set_mode((MAPWIDTH * TILESIZE, MAPHEIGHT * TILESIZE))
@@ -70,72 +81,70 @@ DISPLAY.fill(WHITE)
 
 # Define movement functions
 def forward(robot):
-    if robot.row != 0:
-        if map[robot.row - 1][robot.col] != W:
-            robot.row -= 1
-            pygame.time.wait(DELAY)
+    if robot.row != 0 and map[robot.row - 1][robot.col] != W:
+        robot.row -= 1
 
 
 def backward(robot):
-    if robot.row != 11:
-        if map[robot.row + 1][robot.col] != W:
-            robot.row += 1
-            pygame.time.wait(DELAY)
+    if robot.row != 11 and map[robot.row + 1][robot.col] != W:
+        robot.row += 1
 
 
 def left(robot):
-    if robot.col != 0:
-        if map[robot.row][robot.col - 1] != W:
-            robot.col -= 1
-            pygame.time.wait(DELAY)
+    if robot.col != 0 and map[robot.row][robot.col - 1] != W:
+        robot.col -= 1
 
 
 def right(robot):
-    if robot.col != 11:
-        if map[robot.row][robot.col + 1] != W:
-            robot.col += 1
-            pygame.time.wait(DELAY)
+    if robot.col != 11 and map[robot.row][robot.col + 1] != W:
+        robot.col += 1
+
+
+# PLAN algorithm for robots
+def plan(robot):
+    # If robot is not in the map's limit & there is no wall around, randomly pick a route to navigate
+    num = randrange(0, 4)
+    if num == 0:
+        forward(robot)
+    elif num == 1:
+        backward(robot)
+    elif num == 2:
+        right(robot)
+    else:
+        left(robot)
+
+    pygame.time.wait(DELAY)  # Waits for specified MS
+
+
+# If cell contains food, delete it and increase robot's score
+def eat(robot):
+    global numberOfFoods
+    if map[robot.row][robot.col] == F:
+        map[robot.row][robot.col] = N
+        robot.increaseScore()
+        robot.printScore()
+        numberOfFoods -= 1
 
 
 while True:
-    # print(f"r1-row: {r1.row} r1-col: {r1.col}")
+    # If foods were all taken, terminate the game
+    if numberOfFoods == 0:
+        pygame.quit()
+        sys.exit()
+
+    # If user quits, terminate the game
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
 
-    ################################################# Plan for Robocop ################################################
-    if r1.row != 0 and r1.row != 11 and r1.col != 0 and r1.col != 11:  # limits
-        if (map[r1.row][r1.col + 1] != W) or (map[r1.row][r1.col - 1] != W) or (map[r1.row + 1][r1.col] != W) or (
-                map[r1.row - 1][r1.col] != W):
-            # If robot is not in the map's limit & there is no wall around, randomly pick a route to navigate
-            num = randrange(0, 4)
-            if num == 0:
-                forward(r1)
-            elif num == 1:
-                backward(r1)
-            elif num == 2:
-                right(r1)
-            else:
-                left(r1)
+    # Call plan algorithms for each robot
+    plan(r1)
+    plan(r2)
 
-    else:  # If a robot in the map's limit, then randomly pick a route to navigate
-        num = randrange(0, 4)
-        if num == 0:
-            forward(r1)
-        elif num == 1:
-            backward(r1)
-        elif num == 2:
-            right(r1)
-        else:
-            left(r1)
-    ##################################################################################################################
-
-    # If cell contains food, delete it and increase robot's score
-    if map[r1.row][r1.col] == F:
-        map[r1.row][r1.col] = N
-        r1.increaseScore()
-        # r1.printScore()
+    # Call eat functions for each robot
+    eat(r1)
+    eat(r2)
 
     for row in range(MAPHEIGHT):
         for col in range(MAPWIDTH):
